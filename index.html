@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>로또 번호 추천기</title>
+
+  <script>
+    // 화면이 그려지기 전에 저장된 테마를 적용하여 깜빡임을 줄입니다.
+    const savedTheme = localStorage.getItem("lottoTheme");
+
+    if (savedTheme === "dark") {
+      document.documentElement.dataset.theme = "dark";
+    }
+  </script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --body-background: #f2f5f9;
+      --container-background: #ffffff;
+      --text-color: #202124;
+      --input-background: #ffffff;
+      --input-border: #cccccc;
+      --message-color: #777777;
+      --shadow-color: rgba(0, 0, 0, 0.2);
+      --theme-button-background: #ffffff;
+      --theme-button-color: #333333;
+      --theme-button-border: #d4d8df;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --body-background: #12151c;
+      --container-background: #20242e;
+      --text-color: #f3f4f6;
+      --input-background: #2c313d;
+      --input-border: #555c6b;
+      --message-color: #b9bec8;
+      --shadow-color: rgba(0, 0, 0, 0.45);
+      --theme-button-background: #303644;
+      --theme-button-color: #f3f4f6;
+      --theme-button-border: #555c6b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "맑은 고딕", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+      background: var(--body-background);
+      color: var(--text-color);
+      transition: background-color 0.25s, color 0.25s;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+      margin: 0;
+      padding: 10px 14px;
+      border: 1px solid var(--theme-button-border);
+      border-radius: 999px;
+      background: var(--theme-button-background);
+      color: var(--theme-button-color);
+      font-size: 15px;
+      font-weight: bold;
+      box-shadow: 0 3px 10px var(--shadow-color);
+    }
+
+    .theme-toggle:hover {
+      background: var(--theme-button-background);
+      filter: brightness(0.95);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      padding: 30px;
+      background: var(--container-background);
+      border-radius: 15px;
+      box-shadow: 0 5px 15px var(--shadow-color);
+      transition: background-color 0.25s, box-shadow 0.25s;
+    }
+
+    h1 {
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .control {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    input {
+      width: 100px;
+      padding: 10px;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      background: var(--input-background);
+      color: var(--text-color);
+      font-size: 18px;
+      text-align: center;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 11px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #5f4bdb;
+      color: white;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #4937b8;
+    }
+
+    .result {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .line {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .line-title {
+      width: 90px;
+      font-weight: bold;
+    }
+
+    .ball {
+      width: 45px;
+      height: 45px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .yellow {
+      background: #fbc400;
+      color: #222222;
+    }
+
+    .blue {
+      background: #4a90e2;
+    }
+
+    .red {
+      background: #ff5a5a;
+    }
+
+    .gray {
+      background: #777777;
+    }
+
+    .green {
+      background: #4caf50;
+    }
+
+    .message {
+      margin-top: 25px;
+      color: var(--message-color);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    /* 태블릿 화면 */
+    @media (max-width: 768px) {
+      body {
+        padding: 78px 16px 24px;
+      }
+
+      .container {
+        padding: 24px 20px;
+        border-radius: 12px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .control {
+        display: grid;
+        grid-template-columns: auto minmax(90px, 120px) auto;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .control input,
+      .control button {
+        margin: 0;
+      }
+
+      .line-title {
+        width: 72px;
+      }
+
+      .ball {
+        width: 42px;
+        height: 42px;
+        font-size: 17px;
+      }
+    }
+
+    /* 스마트폰 화면 */
+    @media (max-width: 480px) {
+      body {
+        align-items: flex-start;
+        padding: 68px 10px 18px;
+      }
+
+      .theme-toggle {
+        top: 10px;
+        right: 10px;
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+
+      .container {
+        padding: 22px 14px;
+        border-radius: 10px;
+      }
+
+      h1 {
+        margin-bottom: 22px;
+        font-size: clamp(21px, 7vw, 25px);
+      }
+
+      .control {
+        grid-template-columns: 1fr;
+        gap: 9px;
+        margin-bottom: 26px;
+      }
+
+      .control label {
+        font-size: 15px;
+        font-weight: bold;
+      }
+
+      .control input,
+      .control button {
+        width: 100%;
+      }
+
+      .control input {
+        min-height: 44px;
+        font-size: 16px;
+      }
+
+      .control button {
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 16px;
+      }
+
+      .result {
+        gap: 20px;
+      }
+
+      .line {
+        justify-content: center;
+        gap: 7px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--input-border);
+      }
+
+      .line:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+
+      .line-title {
+        width: 100%;
+        margin-bottom: 2px;
+        text-align: center;
+        font-size: 14px;
+      }
+
+      .ball {
+        width: clamp(34px, 11vw, 40px);
+        height: clamp(34px, 11vw, 40px);
+        font-size: clamp(14px, 4.5vw, 16px);
+      }
+
+      .message {
+        margin-top: 22px;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+    }
+
+    /* 매우 작은 화면 */
+    @media (max-width: 340px) {
+      .container {
+        padding-right: 10px;
+        padding-left: 10px;
+      }
+
+      .line {
+        gap: 5px;
+      }
+
+      .ball {
+        width: 33px;
+        height: 33px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <button
+    id="themeToggle"
+    class="theme-toggle"
+    type="button"
+    aria-label="다크 모드로 전환"
+  >
+    🌙 다크 모드
+  </button>
+
+  <main class="container">
+    <h1>🎱 로또 번호 추천기</h1>
+
+    <div class="control">
+      <label for="count">생성할 세트 수:</label>
+
+      <input
+        type="number"
+        id="count"
+        value="5"
+        min="1"
+        max="1000"
+      >
+
+      <button id="generateButton" type="button">
+        번호 생성
+      </button>
+    </div>
+
+    <div id="result" class="result"></div>
+
+    <p class="message">
+      각 세트는 다른 세트와 중복되지 않도록 생성됩니다.
+    </p>
+  </main>
+
+  <script>
+    const countInput = document.getElementById("count");
+    const resultElement = document.getElementById("result");
+    const generateButton = document.getElementById("generateButton");
+    const themeToggle = document.getElementById("themeToggle");
+
+    // 현재 테마에 맞게 버튼의 문구와 접근성 설명을 변경합니다.
+    function updateThemeButton() {
+      const isDarkMode = document.documentElement.dataset.theme === "dark";
+
+      themeToggle.textContent = isDarkMode
+        ? "☀️ 라이트 모드"
+        : "🌙 다크 모드";
+
+      themeToggle.setAttribute(
+        "aria-label",
+        isDarkMode ? "라이트 모드로 전환" : "다크 모드로 전환"
+      );
+    }
+
+    // 모드를 전환하고 localStorage에 저장합니다.
+    function toggleTheme() {
+      const isDarkMode = document.documentElement.dataset.theme === "dark";
+      const nextTheme = isDarkMode ? "light" : "dark";
+
+      if (nextTheme === "dark") {
+        document.documentElement.dataset.theme = "dark";
+      } else {
+        delete document.documentElement.dataset.theme;
+      }
+
+      localStorage.setItem("lottoTheme", nextTheme);
+      updateThemeButton();
+    }
+
+    // 중복되지 않는 번호 6개를 생성하는 함수
+    function makeNumbers() {
+      const numbers = [];
+
+      while (numbers.length < 6) {
+        const randomNumber = Math.floor(Math.random() * 45) + 1;
+
+        if (!numbers.includes(randomNumber)) {
+          numbers.push(randomNumber);
+        }
+      }
+
+      return numbers.sort((a, b) => a - b);
+    }
+
+    // 번호에 따른 공 색상 클래스 반환
+    function getColorClass(number) {
+      if (number <= 10) {
+        return "yellow";
+      }
+
+      if (number <= 20) {
+        return "blue";
+      }
+
+      if (number <= 30) {
+        return "red";
+      }
+
+      if (number <= 40) {
+        return "gray";
+      }
+
+      return "green";
+    }
+
+    // 로또 번호 세트 생성
+    function generateLottoSets() {
+      const count = Number.parseInt(countInput.value, 10);
+
+      if (Number.isNaN(count) || count < 1) {
+        alert("1 이상의 숫자를 입력해 주세요.");
+        countInput.focus();
+        return;
+      }
+
+      if (count > 1000) {
+        alert("한 번에 최대 1000세트까지 생성할 수 있습니다.");
+        countInput.value = 1000;
+        countInput.focus();
+        return;
+      }
+
+      resultElement.innerHTML = "";
+
+      /*
+       * 생성된 번호 조합을 저장합니다.
+       * 정렬된 번호를 "1-5-10-20-30-45" 형태로 저장하여
+       * 같은 조합이 이미 생성되었는지 확인합니다.
+       */
+      const generatedSets = new Set();
+
+      while (generatedSets.size < count) {
+        const numbers = makeNumbers();
+        const setKey = numbers.join("-");
+
+        // 동일한 번호 조합이 이미 있으면 다시 생성
+        if (generatedSets.has(setKey)) {
+          continue;
+        }
+
+        generatedSets.add(setKey);
+
+        const line = document.createElement("div");
+        line.className = "line";
+
+        const title = document.createElement("div");
+        title.className = "line-title";
+        title.textContent = `${generatedSets.size}세트`;
+
+        line.appendChild(title);
+
+        numbers.forEach((number) => {
+          const ball = document.createElement("div");
+
+          ball.className = `ball ${getColorClass(number)}`;
+          ball.textContent = number;
+
+          line.appendChild(ball);
+        });
+
+        resultElement.appendChild(line);
+      }
+    }
+
+    themeToggle.addEventListener("click", toggleTheme);
+    generateButton.addEventListener("click", generateLottoSets);
+
+    countInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        generateLottoSets();
+      }
+    });
+
+    updateThemeButton();
+    generateLottoSets();
+  </script>
+</body>
+</html>
